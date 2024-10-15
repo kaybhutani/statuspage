@@ -1,5 +1,5 @@
 import { Document } from 'mongoose';
-import { IServiceModel } from '../service';
+import { IServiceModel, ServiceStatus } from '../service';
 
 export interface IServiceEventLogModel extends Document {
   _id: string;
@@ -8,6 +8,7 @@ export interface IServiceEventLogModel extends Document {
   started_at: Date;
   finished_at: Date;
   reason: string;
+  status?: ServiceStatus;
   service?: IServiceModel;
 }
 

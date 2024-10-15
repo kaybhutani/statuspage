@@ -44,7 +44,7 @@ const StatusPage = () => {
     return <Spin size="large" />;
   }
 
-  const allServicesOperational = services.every(service => service.status === ServiceStatus.ACTIVE);
+  const allServicesOperational = services.every(service => service.status === ServiceStatus.OPERATIONAL);
 
   const calculateDuration = (start, end) => {
     const startDate = new Date(start);
@@ -80,6 +80,20 @@ const StatusPage = () => {
     return uptimePercentage.toFixed(2);
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case ServiceStatus.OPERATIONAL:
+        return 'green';
+      case ServiceStatus.MAJOR_OUTAGE:
+        return 'red';
+      case ServiceStatus.PARTIAL_OUTAGE:
+      case ServiceStatus.DEGRADED_PERFORMANCE:
+        return '#FFDB58';
+      default:
+        return 'blue';
+    }
+  };
+
   return (
     <div className='p-16 px-64 bg-gray-100 min-h-screen'>
       <Title level={2}>{companyName}</Title>
@@ -109,7 +123,7 @@ const StatusPage = () => {
               const startTime = new Date(event.started_at);
               const endTime = event.finished_at ? new Date(event.finished_at) : new Date();
               if (time >= startTime && time <= endTime) {
-                return 'red';
+                return getStatusColor(event.status);
               }
             }
             return 'green';
@@ -123,7 +137,7 @@ const StatusPage = () => {
                 title={
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{service.name}</span>
-                    <Tag size='large' color={service.status === ServiceStatus.ACTIVE ? 'green' : 'red'}>
+                    <Tag size='large' color={getStatusColor(service.status)}>
                       {service.status?.toUpperCase()}
                     </Tag>
                   </div>
@@ -178,12 +192,15 @@ const StatusPage = () => {
             <Col span={24} key={event._id}>
               <Card
                 hoverable
-                style={{ borderLeft: `4px solid ${event.status === ServiceStatus.ACTIVE ? 'green' : 'red'}` }}
+                style={{ borderLeft: `4px solid ${getStatusColor(event.status)}` }}
               >
                 <Row justify="space-between" align="top">
                   <Col>
                     <Paragraph strong>
                       Affected Service: {event.service?.name}
+                      <Tag color={getStatusColor(event.status)} style={{ marginLeft: '8px' }}>
+                        {event.status}
+                      </Tag>
                       {event.finished_at ? (
                         <Tooltip title={`This issue was fixed at ${moment(event.finished_at).format('MMM D, YYYY h:mm A')}`}>
                           <Tag color="green" style={{ marginLeft: '8px' }}>Fixed ✅</Tag>

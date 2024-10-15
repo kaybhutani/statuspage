@@ -3,7 +3,7 @@ import { Table, Button, Typography, message, Row, Col, Modal, Form, Input, Selec
 import { MoreOutlined } from '@ant-design/icons';
 import { useFetchUser } from '../lib/user';
 import Layout from '../components/layout';
-import { ServiceStatus } from '../interfaces/service';
+import { ServiceStatus, operationalStatus, inactiveStatus } from '../interfaces/service';
 import { useRouter } from 'next/router';
 
 const { Title, Paragraph } = Typography;
@@ -60,7 +60,10 @@ const ServicesPage = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
-        <Tag color={status === ServiceStatus.ACTIVE ? 'green' : 'red'}>
+        <Tag color={
+          status === ServiceStatus.OPERATIONAL ? 'green' :
+          status === ServiceStatus.MAJOR_OUTAGE ? 'red' : 'yellow'
+        }>
           {status.toUpperCase()}
         </Tag>
       ),
@@ -104,7 +107,7 @@ const ServicesPage = () => {
   const showStatusModal = (service) => {
     setSelectedService(service);
     setIsStatusModalVisible(true);
-    statusForm.setFieldsValue({ status: service.status === ServiceStatus.ACTIVE ? ServiceStatus.INACTIVE : ServiceStatus.ACTIVE });
+    statusForm.resetFields();
   };
 
   const handleCancel = () => {
@@ -263,22 +266,26 @@ const ServicesPage = () => {
             rules={[{ required: true, message: 'Please select the new status!' }]}
           >
             <Select>
-              {Object.values(ServiceStatus)
-                .filter(status => status !== selectedService?.status)
-                .map((status) => (
-                  <Option key={status} value={status}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </Option>
-                ))}
+              {operationalStatus.includes(selectedService?.status)
+                ? inactiveStatus.map((status) => (
+                    <Option key={status} value={status}>
+                      {status}
+                    </Option>
+                  ))
+                : [ServiceStatus.OPERATIONAL].map((status) => (
+                    <Option key={status} value={status}>
+                      {status}
+                    </Option>
+                  ))}
             </Select>
           </Form.Item>
-          <Form.Item
+          {(selectedService?.status===ServiceStatus.OPERATIONAL) && <Form.Item
             name="reason"
             label="Reason"
-            rules={[{ required: statusForm.getFieldValue('status') === ServiceStatus.INACTIVE, message: 'Please provide a reason for deactivation!' }]}
+            rules={[{ required: true, message: 'Please provide a reason for the status change!' }]}
           >
             <Input.TextArea />
-          </Form.Item>
+          </Form.Item>}
           <Form.Item>
             <Button type="primary" htmlType="submit">
               Update Status

@@ -21,7 +21,7 @@ export class ServiceService {
         name,
         description,
         companyId,
-        status: ServiceStatus.ACTIVE,
+        status: ServiceStatus.OPERATIONAL,
         created: new Date(),
         updated: new Date(),
         deleted: false,
@@ -88,17 +88,16 @@ export class ServiceService {
         throw new Error('Service not found');
       }
 
-      if (newStatus === ServiceStatus.INACTIVE) {
+      if (newStatus !== ServiceStatus.OPERATIONAL) {
         if (!reason) {
           throw new Error('Reason is required when changing status to inactive');
         }
         await this.createServiceEventLog(serviceId, newStatus, reason);
-      } else if (newStatus === ServiceStatus.ACTIVE) {
+      } else if (newStatus === ServiceStatus.OPERATIONAL) {
         const latestInactiveLog = await ServiceEventLogModel.findOne({ 
           service_id: serviceId, 
           finished_at: null 
         }).sort({ timestamp: -1 });
-        console.log( "latestInactiveLog", latestInactiveLog);
         if (latestInactiveLog) {
           latestInactiveLog.finished_at = new Date();
           await latestInactiveLog.save();

@@ -7,7 +7,7 @@ const ServiceSchema = new CompanyScopedSchema<IServiceModel>({
   status: { 
     type: String, 
     enum: Object.values(ServiceStatus), 
-    default: ServiceStatus.ACTIVE,
+    default: ServiceStatus.OPERATIONAL,
     required: true 
   },
 }, {
