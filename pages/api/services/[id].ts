@@ -54,11 +54,11 @@ async function handleDelete(id: string, res: NextApiResponse) {
 
 async function handlePatch(id: string, req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { status } = req.body;
+    const { status, reason } = req.body;
     if (!status) {
       return res.status(400).json({ error: 'Missing status field' });
     }
-    const updatedService = await ServiceService.updateService(id, { status });
+    const updatedService = await ServiceService.changeServiceStatus(id, status, reason);
     if (!updatedService) {
       return res.status(404).json({ error: 'Service not found' });
     }

@@ -142,7 +142,7 @@ const ServicesPage = () => {
       });
       if (response.ok) {
         message.success('Service status updated successfully');
-        fetchServices();  // Refresh the service list
+        fetchServices();
         setIsStatusModalVisible(false);
         statusForm.resetFields();
         setSelectedService(null);

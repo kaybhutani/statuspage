@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Typography, Tag, Spin, message, Card, Row, Col, Timeline, Empty } from 'antd';
+import { Typography, Tag, Spin, message, Card, Row, Col, Timeline, Empty, Alert } from 'antd';
 import { ServiceStatus } from '../../interfaces/service';
 
 const { Title, Paragraph } = Typography;
@@ -63,12 +63,19 @@ const StatusPage = () => {
     <div className='p-16 px-64 bg-gray-100 min-h-screen'>
       <Title level={2}>{companyName} - Service Status</Title>
       <Paragraph>Current status of services for {companyName}</Paragraph>
-      {allServicesOperational && (
+      {allServicesOperational ? (
         <Card style={{ backgroundColor: '#e6ffe6', marginBottom: '16px', border: '1px solid #52c41a' }}>
           <Paragraph style={{ color: '#389e0d', margin: 0, fontSize: '16px', fontWeight: 'bold' }}>
             🎉 Hooray! All services are operational 🚀
           </Paragraph>
         </Card>
+      ) : (
+        <Alert
+          message="Some services are facing issues. Our devs are doing their best to fix it!"
+          type="warning"
+          showIcon
+          style={{ marginBottom: '16px' }}
+        />
       )}
       <Row gutter={[0, 16]} className='mt-8'>
         {services.map((service) => (
@@ -89,7 +96,7 @@ const StatusPage = () => {
             <Timeline.Item key={event.id} color={event.status === ServiceStatus.ACTIVE ? 'green' : 'red'}>
               <p>{new Date(event.timestamp).toLocaleString()}: {event.reason}</p>
               <p>Service: {services.find(s => s._id === event.serviceId)?.name}</p>
-              <p>Status: {event.status.toUpperCase()}</p>
+              {/* <p>Status: {event.status.toUpperCase()}</p> */}
               {event.finishedAt && <p>Resolved: {new Date(event.finishedAt).toLocaleString()}</p>}
             </Timeline.Item>
           ))}

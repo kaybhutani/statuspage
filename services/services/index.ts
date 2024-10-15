@@ -115,12 +115,23 @@ export class ServiceService {
 
   public async createServiceEventLog(serviceId: string, status: ServiceStatus, message: string): Promise<void> {
     try {
+      const service = await this.getServiceById(serviceId);
+      if (!service) {
+        throw new Error('Service not found');
+      }
+
+    //   console.log( "SSSSS",  service.companyId, serviceId, status, message);
       const eventLog = new ServiceEventLogModel({
         _id: generateUuid(),
-        serviceId,
-        status,
-        message,
-        timestamp: new Date(),
+        created: new Date(),
+        updated: new Date(),
+        companyId: service.companyId,
+        service_id: serviceId,
+        status: status,
+        reason: message,
+        started_at: new Date(),
+        finished_at: null,
+        deleted: false,
       });
       await eventLog.save();
     } catch (error) {
