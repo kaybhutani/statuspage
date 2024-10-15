@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { Menu, Popover, theme, ConfigProvider } from 'antd';
 import { UserProvider } from '../lib/user';
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { DatabaseOutlined, CaretRightOutlined, SettingOutlined, LogoutOutlined, UserOutlined, PlusOutlined, RightSquareOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { Typography } from 'antd';
