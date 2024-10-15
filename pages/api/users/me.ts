@@ -1,6 +1,6 @@
-import dbConnect from '../../database/database';
-import auth0 from '../../lib/auth0';
-import UserService from '../../services/user';
+import dbConnect from '../../../database/database';
+import auth0 from '../../../lib/auth0';
+import UserService from '../../../services/user';
 
 export default async function me(req, res) {
   try {

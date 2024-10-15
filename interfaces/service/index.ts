@@ -9,5 +9,6 @@ export interface IServiceModel extends Document {
     _id: string;
     companyId: string;
     name: string;
+    description: string;
     status: ServiceStatus;
 }

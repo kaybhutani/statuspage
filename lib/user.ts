@@ -13,7 +13,7 @@ export const fetchUser = async (): Promise<IUserModel | null> => {
     return userState;
   }
 
-  const res = await fetch('/api/me');
+  const res = await fetch('/api/users/me');
   userState = res.ok ? await res.json() : null;
   return userState;
 }

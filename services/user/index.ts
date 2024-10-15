@@ -52,7 +52,7 @@ export class UserService {
       const user = new UserModel({
         _id: generateUuid(),
         auth0Id: auth0User.user_id,
-        name: userName,
+        name: auth0User.name || email.split('@')[0], // Use email username if name not provided
         email: email,
         companyId: company._id,
         created: new Date(),

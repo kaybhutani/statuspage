@@ -22,6 +22,11 @@ const AppLayout = ({ user, loading = false, children }) => {
       ),
     },
     {
+      key: 'services',
+      label: <Link href="/services">Services</Link>,
+      icon: <AppstoreOutlined />,
+    },
+    {
       key: 'users',
       label: <Link href="/users">Users</Link>,
       icon: <UserOutlined />,
