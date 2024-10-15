@@ -64,7 +64,7 @@ const AppLayout = ({ user, loading = false, children }) => {
       theme={{algorithm: darkAlgorithm}}
     >
     <Head>
-      <title>Dashboard - Jobleads</title>
+      <title>Dashboard - StatusPage</title>
     </Head>
 
     <div style={{ display: 'flex' }}>
