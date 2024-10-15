@@ -1,6 +1,6 @@
 import { IServiceModel, ServiceStatus } from '../../interfaces/service';
 import ServiceModel from '../../database/models/service';
-// import ServiceEventLogModel from '../../database/models/serviceEventLog';
+import ServiceEventLogModel from '../../database/models/serviceEventLog';
 import { BaseMultiResponse, Pagination } from '../../interfaces/base';
 import generateUuid from '../../database/common';
 
@@ -81,6 +81,38 @@ export class ServiceService {
     }
   }
 
+  public async changeServiceStatus(serviceId: string, newStatus: ServiceStatus, reason?: string): Promise<IServiceModel | null> {
+    try {
+      const service = await this.getServiceById(serviceId);
+      if (!service) {
+        throw new Error('Service not found');
+      }
+
+      if (newStatus === ServiceStatus.INACTIVE) {
+        if (!reason) {
+          throw new Error('Reason is required when changing status to inactive');
+        }
+        await this.createServiceEventLog(serviceId, newStatus, reason);
+      } else if (newStatus === ServiceStatus.ACTIVE) {
+        const latestInactiveLog = await ServiceEventLogModel.findOne({ 
+          serviceId, 
+          status: ServiceStatus.INACTIVE,
+          finishedAt: null 
+        }).sort({ timestamp: -1 });
+
+        if (latestInactiveLog) {
+          latestInactiveLog.finishedAt = new Date();
+          await latestInactiveLog.save();
+        }
+      }
+
+      return await this.updateService(serviceId, { status: newStatus });
+    } catch (error) {
+      console.error('Failed to change service status:', error);
+      throw error;
+    }
+  }
+
   public async createServiceEventLog(serviceId: string, status: ServiceStatus, message: string): Promise<void> {
     try {
       const eventLog = new ServiceEventLogModel({
@@ -91,9 +123,6 @@ export class ServiceService {
         timestamp: new Date(),
       });
       await eventLog.save();
-
-      // Update the service status
-      await this.updateService(serviceId, { status });
     } catch (error) {
       console.error('Failed to create service event log:', error);
       throw error;

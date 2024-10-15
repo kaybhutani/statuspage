@@ -16,7 +16,7 @@ function MyApp({ Component, pageProps }) {
       //     // colorLinkHover: "#FA8C16",
       //   },
       // }}
-      theme={{algorithm: darkAlgorithm}}
+    //   theme={{algorithm: darkAlgorithm}}
     >
 
 

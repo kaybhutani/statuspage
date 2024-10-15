@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Typography, message, Row, Col, Modal, Form, Input, Select, Tag, Popconfirm, Dropdown, Menu } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
-import { useUser } from '../../lib/user';
-import Layout from '../../components/layout';
-import { ServiceStatus } from '../../interfaces/service';
+import { useUser } from '../lib/user';
+import Layout from '../components/layout';
+import { ServiceStatus } from '../interfaces/service';
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;

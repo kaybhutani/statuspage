@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { Menu, Popover } from 'antd';
+import { Menu, Popover, theme, ConfigProvider } from 'antd';
 import { UserProvider } from '../lib/user';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
@@ -11,7 +11,7 @@ import { Typography } from 'antd';
 const AppLayout = ({ user, loading = false, children }) => {
   const router = useRouter();
   const [current, setCurrent] = useState('');
-
+  const {  darkAlgorithm } = theme;
   const menuItems = [
     {
       key: 'logo',
@@ -23,7 +23,7 @@ const AppLayout = ({ user, loading = false, children }) => {
     },
     {
       key: 'services',
-      label: <Link href="/services">Services</Link>,
+      label: <Link href="/">Services</Link>,
       icon: <AppstoreOutlined />,
     },
     {
@@ -51,6 +51,19 @@ const AppLayout = ({ user, loading = false, children }) => {
 
   return (
   <UserProvider value={{ user, loading }}>
+    <ConfigProvider
+      // theme={{
+      //   token: {
+      //     // colorPrimary: "#FA8C16",
+      //     colorTextHeading: "#595959",
+      //     colorTextBase: "#595959",
+      //     colorText: "#595959",
+      //     // colorLink: "#FA8C16",
+      //     // colorLinkHover: "#FA8C16",
+      //   },
+      // }}
+      theme={{algorithm: darkAlgorithm}}
+    >
     <Head>
       <title>Dashboard - Jobleads</title>
     </Head>
@@ -84,7 +97,7 @@ const AppLayout = ({ user, loading = false, children }) => {
         </div>
       </div>
       </div>
-
+      </ConfigProvider>
   </UserProvider>
 )};
 
