@@ -145,9 +145,7 @@ export class UserService {
       const user = await UserModel.findOne({ auth0Id });
       if (user && user.companyId) {
         const company = await CompanyModel.findById(user.companyId);
-        if (company) {
-          user.company = company;
-        }
+        return { ...user.toJSON(), company: company?.toJSON() };
       }
       return user;
     } catch (error) {

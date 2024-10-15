@@ -2,8 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import ServiceService from '../../../services/services';
 import dbConnect from '../../../database/database';
 import CompanyModel from '../../../database/models/company';
-import ServiceEventLogModel from '../../../database/models/serviceEventLog';
-
+import ServiceEventLogModel from '../../../database/models/serviceeventlog';
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
 

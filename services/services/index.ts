@@ -1,6 +1,6 @@
 import { IServiceModel, ServiceStatus } from '../../interfaces/service';
 import ServiceModel from '../../database/models/service';
-import ServiceEventLogModel from '../../database/models/serviceEventLog';
+import ServiceEventLogModel from '../../database/models/serviceeventlog';
 import { BaseMultiResponse, Pagination } from '../../interfaces/base';
 import generateUuid from '../../database/common';
 

@@ -19,6 +19,7 @@ async function dbConnect() {
       schema.pre("find", filterDeleted);
       schema.pre("findOne", filterDeleted);
     });
+    console.log('dbConnect hit');
     const db = await mongoose.connect(process.env.MONGO_URI!, mongooseOptions);
     console.log("> Database is connected to: ", db.connection.name);
   } catch (error) {

@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Form, Input, Button, message, Row, Col, Card } from 'antd';
-import { useUser } from '../lib/user';
+import { useFetchUser, useUser } from '../lib/user';
 import Layout from '../components/layout';
-import { CopyOutlined } from '@ant-design/icons';
+import { CopyOutlined, LinkOutlined, EditOutlined } from '@ant-design/icons';
 
 const { Title, Paragraph } = Typography;
 
 const SettingsPage = () => {
-  const { user, loading } = useUser();
+  const { user, loading } = useFetchUser();
   const [form] = Form.useForm();
   const [companyName, setCompanyName] = useState('');
   const [statusPageUrl, setStatusPageUrl] = useState('');
+  const [isEditingCompanyName, setIsEditingCompanyName] = useState(false);
 
   useEffect(() => {
     if (user && user.company) {
@@ -55,6 +56,28 @@ const SettingsPage = () => {
     }
   };
 
+  const handleCompanyNameChange = async (values) => {
+    try {
+      const response = await fetch('/api/company', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: values.companyName }),
+      });
+
+      if (response.ok) {
+        const updatedCompany = await response.json();
+        setCompanyName(updatedCompany.name);
+        setIsEditingCompanyName(false);
+        message.success('Company name updated successfully.');
+      } else {
+        message.error('Failed to update company name.');
+      }
+    } catch (error) {
+      console.error('Error updating company name:', error);
+      message.error('An error occurred while updating company name.');
+    }
+  };
+
   if (loading) {
     return <Layout user={null} loading={loading}>Loading...</Layout>;
   }
@@ -64,14 +87,27 @@ const SettingsPage = () => {
       <Title level={2}>Settings</Title>
       <Row gutter={[16, 16]}>
         <Col span={12}>
-          <Card title="Company Information">
-            <Paragraph>
-              <strong>Company Name:</strong> {companyName}
-            </Paragraph>
+          <Card title="Company Information" style={{ height: '200px' }}>
+            {isEditingCompanyName ? (
+              <Form onFinish={handleCompanyNameChange} initialValues={{ companyName }}>
+                <Form.Item name="companyName" rules={[{ required: true, message: 'Please input company name!' }]}>
+                  <Input />
+                </Form.Item>
+                <Form.Item>
+                  <Button type="primary" htmlType="submit">Save</Button>
+                  <Button onClick={() => setIsEditingCompanyName(false)} style={{ marginLeft: 8 }}>Cancel</Button>
+                </Form.Item>
+              </Form>
+            ) : (
+              <Paragraph>
+                <strong>Company Name:</strong> {companyName}
+                <Button icon={<EditOutlined />} type="link" onClick={() => setIsEditingCompanyName(true)} />
+              </Paragraph>
+            )}
           </Card>
         </Col>
         <Col span={12}>
-          <Card title="Change Password">
+          <Card title="Change Password" style={{ height: '200px' }}>
             <Form form={form} onFinish={handlePasswordChange}>
               <Form.Item>
                 <Button type="primary" htmlType="submit">
@@ -84,13 +120,14 @@ const SettingsPage = () => {
       </Row>
       <Row style={{ marginTop: '16px' }}>
         <Col span={24}>
-          <Card title="Public Status Page">
+          <Card title="Public Status Page" style={{ height: '200px' }}>
             <Paragraph>
               Your public status page URL:
             </Paragraph>
             <Input.Group compact>
               <Input
-                style={{ width: 'calc(100% - 32px)' }}
+                style={{ width: 'calc(100% - 64px)' }}
+                prefix={<LinkOutlined />}
                 value={statusPageUrl}
                 readOnly
               />

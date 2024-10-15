@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Typography, message, Row, Col, Modal, Form, Input, Select, Tag, Popconfirm, Dropdown, Menu } from 'antd';
+import { Table, Button, Typography, message, Row, Col, Modal, Form, Input, Select, Tag, Popconfirm, Dropdown, Menu, Spin } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
-import { useUser } from '../lib/user';
+import { useFetchUser } from '../lib/user';
 import Layout from '../components/layout';
 import { ServiceStatus } from '../interfaces/service';
+import { useRouter } from 'next/router';
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
 
 const ServicesPage = () => {
-  const { user, loading } = useUser();
+  const { user, loading } = useFetchUser();
   const [services, setServices] = useState([]);
   const [fetchingServices, setFetchingServices] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -17,15 +18,23 @@ const ServicesPage = () => {
   const [selectedService, setSelectedService] = useState(null);
   const [form] = Form.useForm();
   const [statusForm] = Form.useForm();
+  const router = useRouter();
 
   useEffect(() => {
-      fetchServices();
-  }, [user]);
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else {
+        fetchServices();
+      }
+    }
+  }, [user, loading, router]);
 
   const fetchServices = async () => {
+    if (!user?.companyId) return;
     setFetchingServices(true);
     try {
-      const response = await fetch(`/api/services?companyId=${user?.companyId}`);
+      const response = await fetch(`/api/services?companyId=${user.companyId}`);
       if (response.ok) {
         const data = await response.json();
         setServices(data.data);
@@ -173,7 +182,11 @@ const ServicesPage = () => {
   };
 
   if (loading) {
-    return <Layout user={null} loading={loading}>Loading...</Layout>;
+    return <Layout user={null} loading={loading}><Spin size="large" /></Layout>;
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (

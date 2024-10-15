@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Typography, message, Row, Col, Modal, Form, Input } from 'antd';
-import { useUser } from '../../lib/user';
+import { useFetchUser, useUser } from '../../lib/user';
 import Layout from '../../components/layout';
 
 const { Title, Paragraph } = Typography;
 
 const UsersPage = () => {
-  const { user, loading } = useUser();
+  const { user, loading } = useFetchUser();
   const [users, setUsers] = useState([]);
   const [fetchingUsers, setFetchingUsers] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);

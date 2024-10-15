@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Typography, Tag, Spin, message, Card, Row, Col, Empty, Alert, Tooltip } from 'antd';
+import { Typography, Tag, Spin, message, Card as AntCard, Row, Col, Empty, Alert, Tooltip } from 'antd';
 import { ServiceStatus } from '../../interfaces/service';
 import moment from 'moment';
 const { Title, Paragraph } = Typography;
+
+const Card = AntCard as any;
 
 const StatusPage = () => {
   const router = useRouter();
@@ -53,6 +55,31 @@ const StatusPage = () => {
     return `${hours}h ${minutes}m`;
   };
 
+  const calculateUptime = (serviceEvents) => {
+    const tenDaysAgo = moment().subtract(10, 'days');
+    const totalHours = 240;
+    let downHours = 0;
+
+    serviceEvents.forEach(event => {
+      const startTime = moment(event.started_at);
+      const endTime = event.finished_at ? moment(event.finished_at) : moment();
+      
+      if (startTime.isBefore(tenDaysAgo)) {
+        startTime.set(tenDaysAgo);
+      }
+      
+      if (endTime.isAfter(moment())) {
+        endTime.set(moment());
+      }
+      
+      const duration = moment.duration(endTime.diff(startTime));
+      downHours += duration.asHours();
+    });
+
+    const uptimePercentage = ((totalHours - downHours) / totalHours) * 100;
+    return uptimePercentage.toFixed(2);
+  };
+
   return (
     <div className='p-16 px-64 bg-gray-100 min-h-screen'>
       <Title level={2}>{companyName}</Title>
@@ -88,6 +115,8 @@ const StatusPage = () => {
             return 'green';
           };
 
+          const uptimePercentage = calculateUptime(serviceEvents);
+
           return (
             <Col span={24} key={service._id}>
               <Card 
@@ -103,12 +132,17 @@ const StatusPage = () => {
               >
                 <Paragraph>{service.description}</Paragraph>
                 <div style={{ marginTop: '16px' }}>
-                  <div style={{ fontSize: '14px', marginBottom: '4px' }}>Uptime Status (Last 24 hours)</div>
+                  <div style={{ fontSize: '14px', marginBottom: '4px' }}>Uptime Status (Last 10 days)</div>
                   <div style={{ display: 'flex', height: '20px', width: '100%' }}>
                     {[...Array(240)].map((_, index) => {
                       const time = new Date();
-                      time.setMinutes(time.getMinutes() - (239 - index) * 10);
-                      const formattedTime = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      time.setHours(time.getHours() - (239 - index));
+                      const formattedTime = time.toLocaleString([], { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      });
                       const barColor = getBarColor(time);
                       return (
                         <Tooltip key={index} title={`${formattedTime} - Service was ${barColor === 'green' ? 'active' : 'inactive'}`}>
@@ -124,6 +158,12 @@ const StatusPage = () => {
                         </Tooltip>
                       );
                     })}
+                  </div>
+                  <hr style={{ margin: '8px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span>10 days ago</span>
+                    <span>{uptimePercentage}% uptime</span>
+                    <span>Today</span>
                   </div>
                 </div>
               </Card>

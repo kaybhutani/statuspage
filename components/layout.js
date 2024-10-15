@@ -1,10 +1,10 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { Menu, Popover, theme, ConfigProvider } from 'antd';
+import { Menu, Popover, theme, ConfigProvider, Divider } from 'antd';
 import { UserProvider } from '../lib/user';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { DatabaseOutlined, CaretRightOutlined, SettingOutlined, LogoutOutlined, UserOutlined, PlusOutlined, RightSquareOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { DatabaseOutlined, CaretRightOutlined, SettingOutlined, LogoutOutlined, UserOutlined, PlusOutlined, RightSquareOutlined, AppstoreOutlined, DashboardOutlined } from '@ant-design/icons';
 import { Typography } from 'antd';
 
 const AppLayout = ({ user, loading = false, children }) => {
@@ -21,6 +21,11 @@ const AppLayout = ({ user, loading = false, children }) => {
       ),
     },
     {
+      key: 'dashboard',
+      label: <Link href="/dashboard">Dashboard</Link>,
+      icon: <DashboardOutlined />,
+    },
+    {
       key: 'services',
       label: <Link href="/">Services</Link>,
       icon: <AppstoreOutlined />,
@@ -34,6 +39,16 @@ const AppLayout = ({ user, loading = false, children }) => {
       key: 'settings',
       label: <Link href="/settings">Settings</Link>,
       icon: <SettingOutlined />,
+    },
+    {
+      key: 'divider',
+      label: <Divider style={{ margin: '10px 0' }} />,
+    },
+    {
+      key: 'user',
+      label: <span>Hi, {user?.name || 'User'}</span>,
+      icon: <UserOutlined />,
+      style: { position: 'absolute', bottom: 40, width: 'auto' },
     },
     {
       key: 'logout',

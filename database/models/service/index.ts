@@ -4,7 +4,6 @@ import { IServiceModel, ServiceStatus } from "../../../interfaces/service";
 
 const ServiceSchema = new CompanyScopedSchema<IServiceModel>({
   name: { type: String, required: true, trim: true },
-  description: { type: String, required: true, trim: true },
   status: { 
     type: String, 
     enum: Object.values(ServiceStatus), 
