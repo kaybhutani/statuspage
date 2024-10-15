@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Table, Typography, Button, Tag } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined, TeamOutlined, RightOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, ExclamationCircleOutlined, WarningOutlined, CloseCircleOutlined, TeamOutlined, RightOutlined } from '@ant-design/icons';
 import Layout from '../../components/layout';
 import { useFetchUser } from '../../lib/user';
 import Link from 'next/link';
-import moment from 'moment';
+import { ServiceStatus } from '../../interfaces/service';
 
 const { Title } = Typography;
 
 const DashboardPage = () => {
   const { user, loading } = useFetchUser();
-  const [services, setServices] = useState({ active: 0, inactive: 0, data: [] });
+  const [services, setServices] = useState({ data: [] });
   const [events, setEvents] = useState([]);
   const [userCount, setUserCount] = useState(0);
 
@@ -20,9 +20,7 @@ const DashboardPage = () => {
       fetch(`/api/services?companyId=${user.companyId}`)
         .then(res => res.json())
         .then(data => {
-          const active = data.data.filter(service => service.status === 'active').length;
-          const inactive = data.data.filter(service => service.status === 'inactive').length;
-          setServices({ active, inactive, data: data.data });
+          setServices({ data: data.data });
         });
 
       // Fetch events data
@@ -77,13 +75,17 @@ const DashboardPage = () => {
     },
   ];
 
+  const getServiceStatusCount = (status) => {
+    return services.data.filter(service => service.status === status).length;
+  };
+
   return (
     <Layout user={user} loading={loading}>
       <Title level={2}>Dashboard</Title>
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12}>
           <Card 
-            title="Services" 
+            title="Operational Services" 
             style={{ height: '100%' }}
             extra={
               <Link href="/">
@@ -94,17 +96,48 @@ const DashboardPage = () => {
             }
           >
             <Statistic
-              title="Active Services"
-              value={services.active}
+              value={getServiceStatusCount(ServiceStatus.OPERATIONAL)}
               prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
             />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12}>
+          <Card 
+            title="Degraded Performance" 
+            style={{ height: '100%' }}
+          >
             <Statistic
-              title="Inactive Services"
-              value={services.inactive}
+              value={getServiceStatusCount(ServiceStatus.DEGRADED_PERFORMANCE)}
+              prefix={<ExclamationCircleOutlined style={{ color: '#faad14' }} />}
+            />
+          </Card>
+        </Col>
+      </Row>
+      <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
+        <Col xs={24} sm={12}>
+          <Card 
+            title="Partial Outage" 
+            style={{ height: '100%' }}
+          >
+            <Statistic
+              value={getServiceStatusCount(ServiceStatus.PARTIAL_OUTAGE)}
+              prefix={<WarningOutlined style={{ color: '#fa8c16' }} />}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12}>
+          <Card 
+            title="Major Outage" 
+            style={{ height: '100%' }}
+          >
+            <Statistic
+              value={getServiceStatusCount(ServiceStatus.MAJOR_OUTAGE)}
               prefix={<CloseCircleOutlined style={{ color: '#f5222d' }} />}
             />
           </Card>
         </Col>
+      </Row>
+      <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
         <Col xs={24} sm={12}>
           <Card 
             title="Recent Events" 
@@ -126,8 +159,6 @@ const DashboardPage = () => {
             />
           </Card>
         </Col>
-      </Row>
-      <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
         <Col xs={24} sm={12}>
           <Card 
             title="Company Users" 
