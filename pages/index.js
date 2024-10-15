@@ -1,38 +1,36 @@
-import React from 'react';
-
+import React, { useEffect } from 'react';
+import { Spin } from 'antd';
 import Layout from '../components/layout';
 import { useFetchUser } from '../lib/user';
+import { useRouter } from 'next/router';
 
 export default function Home() {
   const { user, loading } = useFetchUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <Layout user={user} loading={loading}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <Spin />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!user) {
+    return null; // This will prevent any flash of content before redirect
+  }
 
   return (
     <Layout user={user} loading={loading}>
-      <h1>Next.js and Auth0 Example</h1>
-
-      {loading && (
-        <p>
-          Loading login info...
-        </p>
-      )}
-
-      {!loading && !user && (
-        <>
-          <p>
-            To test the login click in <i>Login</i>
-          </p>
-          <p>
-            Once you have logged in you should be able to click in <i>Profile</i> and <i>Logout</i>
-          </p>
-        </>
-      )}
-
-      {user && (
-        <>
-          <h4>Rendered user info on the client</h4>
-          <pre>{JSON.stringify(user, null, 2)}</pre>
-        </>
-      )}
+      
     </Layout>
-  )
-};
+  );
+}

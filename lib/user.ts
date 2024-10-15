@@ -1,12 +1,14 @@
 import React from 'react';
 import fetch from 'isomorphic-unfetch';
+import { IUserModel } from '../interfaces/user';
+import { useRouter } from 'next/router';
 
 // Use a global to save the user, so we don't have to fetch it again after page navigations
-let userState;
+let userState: IUserModel | null | undefined;
 
-const User = React.createContext({ user: null, loading: false });
+const User = React.createContext<{ user: IUserModel | null; loading: boolean }>({ user: null, loading: false });
 
-export const fetchUser = async () => {
+export const fetchUser = async (): Promise<IUserModel | null> => {
   if (userState !== undefined) {
     return userState;
   }
@@ -16,26 +18,35 @@ export const fetchUser = async () => {
   return userState;
 }
 
-export const UserProvider = ({ value, children }) => {
+export const UserProvider: React.FC<{ value: { user: IUserModel | null; loading: boolean }; children: React.ReactNode }> = ({ value, children }) => {
   const { user } = value;
+  const router = useRouter();
 
   // If the user was fetched in SSR add it to userState so we don't fetch it again
   React.useEffect(() => {
     if (!userState && user) {
-      userState = user
+      userState = user;
     }
   }, []);
 
-  return <User.Provider value={value}>{children}</User.Provider>;
+  // Redirect to logout if user is not found
+  React.useEffect(() => {
+    if (userState === null) {
+      router.push('/api/logout');
+    }
+  }, [userState, router]);
+
+  return React.createElement(User.Provider, { value: value }, children);
 }
 
 export const useUser = () => React.useContext(User);
 
 export const useFetchUser = () => {
-  const [data, setUser] = React.useState({
+  const [data, setUser] = React.useState<{ user: IUserModel | null; loading: boolean }>({
     user: userState || null,
     loading: userState === undefined
   });
+  const router = useRouter();
 
   React.useEffect(() => {
     if (userState !== undefined) {
@@ -48,13 +59,16 @@ export const useFetchUser = () => {
       // Only set the user if the component is still mounted
       if (isMounted) {
         setUser({ user, loading: false });
+        if (user === null) {
+          router.push('/api/logout');
+        }
       }
     })
 
     return () => {
       isMounted = false
     };
-  }, [userState]);
+  }, [userState, router]);
 
   return data;
 }
