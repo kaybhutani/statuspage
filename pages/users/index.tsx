@@ -13,15 +13,14 @@ const UsersPage = () => {
   const [form] = Form.useForm();
 
   useEffect(() => {
-    if (user && user.companyId) {
+    
       fetchUsers();
-    }
-  }, [user]);
+  }, []);
 
   const fetchUsers = async () => {
     setFetchingUsers(true);
     try {
-      const response = await fetch(`/api/users?companyId=${user?.companyId}`);
+      const response = await fetch(`/api/users`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data.data);
@@ -66,24 +65,23 @@ const UsersPage = () => {
 
   const handleInviteUser = async (values) => {
     try {
-      // Implement the API call to invite user here
-      // For example:
-      // const response = await fetch('/api/invite-user', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ ...values, companyId: user.companyId }),
-      // });
-      // if (response.ok) {
-      //   message.success('User invited successfully');
-      //   fetchUsers();  // Refresh the user list
-      // } else {
-      //   message.error('Failed to invite user');
-      // }
+      const response = await fetch('/api/users/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
 
-      // For now, we'll just show a success message
-      message.success('User invited successfully (mock)');
-      setIsModalVisible(false);
-      form.resetFields();
+      if (response.ok) {
+        message.success('User invited successfully');
+        setIsModalVisible(false);
+        form.resetFields();
+        fetchUsers(); // Refresh the user list
+      } else {
+        const errorData = await response.json();
+        message.error(errorData.error || 'Failed to invite user');
+      }
     } catch (error) {
       console.error('Error inviting user:', error);
       message.error('An error occurred while inviting user');
@@ -145,6 +143,16 @@ const UsersPage = () => {
             ]}
           >
             <Input />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[
+              { required: true, message: 'Please input the password!' },
+              { min: 8, message: 'Password must be at least 8 characters long!' }
+            ]}
+          >
+            <Input.Password />
           </Form.Item>
           <Form.Item>
             <Button type="primary" htmlType="submit">

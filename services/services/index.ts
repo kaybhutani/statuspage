@@ -95,13 +95,12 @@ export class ServiceService {
         await this.createServiceEventLog(serviceId, newStatus, reason);
       } else if (newStatus === ServiceStatus.ACTIVE) {
         const latestInactiveLog = await ServiceEventLogModel.findOne({ 
-          serviceId, 
-          status: ServiceStatus.INACTIVE,
-          finishedAt: null 
+          service_id: serviceId, 
+          finished_at: null 
         }).sort({ timestamp: -1 });
-
+        console.log( "latestInactiveLog", latestInactiveLog);
         if (latestInactiveLog) {
-          latestInactiveLog.finishedAt = new Date();
+          latestInactiveLog.finished_at = new Date();
           await latestInactiveLog.save();
         }
       }
@@ -142,13 +141,14 @@ export class ServiceService {
 
   public async getServiceEventLogs(serviceId: string, pagination: Pagination): Promise<BaseMultiResponse<any>> {
     try {
-      const query = ServiceEventLogModel.find({ serviceId });
+      const query = ServiceEventLogModel.find({ service_id: serviceId });
 
       const total = await query.countDocuments();
       const logs = await query
-        .sort({ timestamp: -1 })
+        .sort({ started_at: -1 })
         .skip(pagination.skip)
         .limit(pagination.limit)
+        .populate('service')
         .exec();
 
       return {

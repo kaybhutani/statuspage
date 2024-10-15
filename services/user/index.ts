@@ -1,6 +1,6 @@
 import { IUserModel } from '../../interfaces/user';
 import UserModel from '../../database/models/user';
-import { BaseMultiResponse, Pagination } from '../../interfaces/base';
+import { BaseMultiResponse } from '../../interfaces/base';
 import CompanyModel from '../../database/models/company';
 import generateUuid from '../../database/common';
 
@@ -61,7 +61,7 @@ export class UserService {
       });
       await user.save();
 
-      // Populate company information
+      // Attach company information
       user.company = company;
 
       return user;
@@ -71,10 +71,69 @@ export class UserService {
     }
   }
 
+  public async createUserForExistingCompany(companyId: string, userName: string, email: string, password: string): Promise<IUserModel> {
+    try {
+      // Check if company exists
+      const company = await CompanyModel.findById(companyId);
+      if (!company) {
+        throw new Error('Company not found');
+      }
+
+      // Create user in Auth0
+      const auth0Response = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await this.getAuth0Token()}`,
+        },
+        body: JSON.stringify({
+          name: userName,
+          connection: 'Username-Password-Authentication',
+          email: email,
+          password: password,
+        }),
+      });
+
+      if (!auth0Response.ok) {
+        const errorResponse = await auth0Response.json();
+        throw new Error(`Failed to create user in Auth0: ${errorResponse.message}`);
+      }
+
+      const auth0User = await auth0Response.json();
+
+      // Create user in our database
+      const user = new UserModel({
+        _id: generateUuid(),
+        auth0Id: auth0User.user_id,
+        name: auth0User.name || email.split('@')[0], // Use email username if name not provided
+        email: email,
+        companyId: companyId,
+        created: new Date(),
+        updated: new Date(),
+        deleted: false
+      });
+      await user.save();
+
+      // Attach company information
+      user.company = company;
+
+      return user;
+    } catch (error) {
+      console.error('Failed to create user for existing company:', error);
+      throw error;
+    }
+  }
 
   public async getUserById(id: string): Promise<IUserModel | null> {
     try {
-      return await UserModel.findById(id).populate('company');
+      const user = await UserModel.findById(id);
+      if (user && user.companyId) {
+        const company = await CompanyModel.findById(user.companyId);
+        if (company) {
+          user.company = company;
+        }
+      }
+      return user;
     } catch (error) {
       console.error('Failed to get user by ID:', error);
       throw error;
@@ -99,7 +158,14 @@ export class UserService {
 
   public async updateUser(id: string, updateData: Partial<IUserModel>): Promise<IUserModel | null> {
     try {
-      return await UserModel.findByIdAndUpdate(id, updateData, { new: true }).populate('company');
+      const user = await UserModel.findByIdAndUpdate(id, updateData, { new: true });
+      if (user && user.companyId) {
+        const company = await CompanyModel.findById(user.companyId);
+        if (company) {
+          user.company = company;
+        }
+      }
+      return user;
     } catch (error) {
       console.error('Failed to update user:', error);
       throw error;
@@ -116,7 +182,7 @@ export class UserService {
     }
   }
 
-  public async getUsers(pagination: Pagination, companyId?: string): Promise<BaseMultiResponse<IUserModel>> {
+  public async getUsers(companyId?: string): Promise<BaseMultiResponse<IUserModel>> {
     try {
       let query = UserModel.find();
       
@@ -124,22 +190,29 @@ export class UserService {
         query = query.where('companyId').equals(companyId);
       }
 
-      const total = await query.countDocuments();
-      const users = await query
-        .skip(pagination.skip)
-        .limit(pagination.limit)
-        .populate('company')
-        .exec();
+      const users = await query.exec();
+
+      // Fetch companies separately and attach to users
+      const companyIds = users.map(user => user.companyId);
+      const companies = await CompanyModel.find({ _id: { $in: companyIds } });
+      const companyMap = new Map(companies.map(company => [company._id.toString(), company]));
+
+      const usersWithCompanies = users.map(user => {
+        const userObject = user.toObject();
+        userObject.company = companyMap.get(user.companyId.toString());
+        return userObject;
+      });
 
       return {
-        data: users,
-        total
+        data: usersWithCompanies,
+        total: usersWithCompanies.length
       };
     } catch (error) {
       console.error('Failed to get users:', error);
       throw error;
     }
   }
+
   private async getAuth0Token(): Promise<string> {
     try {
       const axios = require("axios").default;
