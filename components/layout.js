@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { Menu, Popover, theme, ConfigProvider, Divider } from 'antd';
+import { Menu, Popover, theme, ConfigProvider, Divider, Switch } from 'antd';
 import { UserProvider } from '../lib/user';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -10,13 +10,25 @@ import { Typography } from 'antd';
 const AppLayout = ({ user, loading = false, children }) => {
   const router = useRouter();
   const [current, setCurrent] = useState('');
-  const {  darkAlgorithm } = theme;
+  const { darkAlgorithm, defaultAlgorithm } = theme;
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem('darkMode');
+    setIsDarkMode(savedMode === 'true');
+  }, []);
+
+  const toggleDarkMode = (checked) => {
+    setIsDarkMode(checked);
+    localStorage.setItem('darkMode', checked);
+  };
+
   const menuItems = [
     {
       key: 'logo',
       label: (
         <Link href="/">
-          <Typography.Title level={4} style={{ color: 'white', margin: 0 }}>StatusPage</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0 }}>StatusPage</Typography.Title>
         </Link>
       ),
     },
@@ -46,16 +58,36 @@ const AppLayout = ({ user, loading = false, children }) => {
     },
     {
       key: 'user',
-      label: <span>Hi, {user?.name || 'User'}</span>,
+      label: (
+        <span>
+          Hi, {user?.name || 'User'}
+        </span>
+      ),
       icon: <UserOutlined />,
-      style: { position: 'absolute', bottom: 40, width: 'auto' },
+      style: { position: 'absolute', bottom: 80, width: '100%' },
+    },
+    {
+      key: 'darkMode',
+      label: (
+        <span>
+          Dark Mode
+          <Switch
+            checked={isDarkMode}
+            onChange={toggleDarkMode}
+            checkedChildren="🌙"
+            unCheckedChildren="☀️"
+            style={{ marginLeft: '10px' }}
+          />
+        </span>
+      ),
+      style: { position: 'absolute', bottom: 40, width: '100%' },
     },
     {
       key: 'logout',
       label: 'Logout',
       icon: <LogoutOutlined />,
       onClick: () => window.location.href = '/api/logout',
-      style: { position: 'absolute', bottom: 0, width: 'auto' },
+      style: { position: 'absolute', bottom: 0, width: '100%' },
     },
   ];
 
@@ -66,17 +98,9 @@ const AppLayout = ({ user, loading = false, children }) => {
   return (
   <UserProvider value={{ user, loading }}>
     <ConfigProvider
-      // theme={{
-      //   token: {
-      //     // colorPrimary: "#FA8C16",
-      //     colorTextHeading: "#595959",
-      //     colorTextBase: "#595959",
-      //     colorText: "#595959",
-      //     // colorLink: "#FA8C16",
-      //     // colorLinkHover: "#FA8C16",
-      //   },
-      // }}
-      theme={{algorithm: darkAlgorithm}}
+      theme={{
+        algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm,
+      }}
     >
     <Head>
       <title>Dashboard - StatusPage</title>
@@ -88,13 +112,13 @@ const AppLayout = ({ user, loading = false, children }) => {
         selectedKeys={[current]}
         mode="inline"
         style={{width: 200, height: '100vh'}}
-        theme="dark"
+        theme={isDarkMode ? "dark" : "light"}
         defaultOpenKeys={['tasks']}
         items={menuItems}
       >
         
       </Menu>
-      <div className="bg-gray-700" style={{ 
+      <div className={isDarkMode ? "bg-gray-700" : "bg-gray-100"} style={{ 
         flex: 1, 
         height: '100vh', 
         position: 'fixed',
@@ -103,7 +127,7 @@ const AppLayout = ({ user, loading = false, children }) => {
         bottom: 0,
         left: 200,
       }}>
-        <div className="m-1.5 bg-gray-900 rounded-lg shadow-lg h-full p-6" style={{
+        <div className={`m-1.5 ${isDarkMode ? "bg-gray-900" : "bg-white"} rounded-lg shadow-lg h-full p-6`} style={{
           height: '100%',
           overflow: 'auto'
         }}>
