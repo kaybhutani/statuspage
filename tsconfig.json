@@ -22,9 +22,7 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/lib/*": [
-        "lib/*"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [

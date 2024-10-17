@@ -16,7 +16,6 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (user && user.companyId) {
-      // Fetch services data
       fetch(`/api/services?companyId=${user.companyId}`)
         .then(res => res.json())
         .then(data => {
