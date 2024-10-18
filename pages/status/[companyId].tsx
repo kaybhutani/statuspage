@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Typography, Tag, Spin, message, Card as AntCard, Row, Col, Empty, Alert, Tooltip } from 'antd';
 import { ServiceStatus } from '../../interfaces/service';
 import moment from 'moment';
-const { Title, Paragraph } = Typography;
 
-const Card = AntCard as any;
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip as AntTooltip } from 'antd';
 
 const StatusPage = () => {
   const router = useRouter();
@@ -30,18 +33,17 @@ const StatusPage = () => {
         setCompanyName(data.company.name);
         setEvents(data.events);
       } else {
-        message.error('Failed to fetch services and company information');
+        console.error('Failed to fetch services and company information');
       }
     } catch (error) {
       console.error('Error fetching services and company:', error);
-      message.error('An error occurred while fetching services and company information');
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <Spin size="large" />;
+    return <Skeleton className="w-[100px] h-[20px] rounded-full" />;
   }
 
   const allServicesOperational = services.every(service => service.status === ServiceStatus.OPERATIONAL);
@@ -56,24 +58,25 @@ const StatusPage = () => {
   };
 
   const calculateUptime = (serviceEvents) => {
-    const tenDaysAgo = moment().subtract(10, 'days');
+    const tenDaysAgo = new Date();
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
     const totalHours = 240;
     let downHours = 0;
 
     serviceEvents.forEach(event => {
-      const startTime = moment(event.started_at);
-      const endTime = event.finished_at ? moment(event.finished_at) : moment();
+      const startTime = new Date(event.started_at);
+      const endTime = event.finished_at ? new Date(event.finished_at) : new Date();
       
-      if (startTime.isBefore(tenDaysAgo)) {
-        startTime.set(tenDaysAgo.toObject());
+      if (startTime < tenDaysAgo) {
+        startTime.setTime(tenDaysAgo.getTime());
       }
       
-      if (endTime.isAfter(moment())) {
-        endTime.set(moment().toObject());
+      if (endTime > new Date()) {
+        endTime.setTime(new Date().getTime());
       }
       
-      const duration = moment.duration(endTime.diff(startTime));
-      downHours += duration.asHours();
+      const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+      downHours += duration;
     });
 
     const uptimePercentage = ((totalHours - downHours) / totalHours) * 100;
@@ -88,33 +91,34 @@ const StatusPage = () => {
         return 'red';
       case ServiceStatus.PARTIAL_OUTAGE:
       case ServiceStatus.DEGRADED_PERFORMANCE:
-        return '#FFDB58';
+        return 'yellow';
       default:
         return 'blue';
     }
   };
 
   return (
-    <div className='p-16 px-64 bg-gray-100 min-h-screen'>
-      <Title level={2}>{companyName}</Title>
-      <Paragraph>Current status of services for {companyName}</Paragraph>
+    <div className='p-8 md:p-16 lg:px-32 xl:px-64 bg-background min-h-screen'>
+      <h2 className="text-4xl font-bold tracking-tight mb-2 text-primary">{companyName}</h2>
+      <p className="text-muted-foreground mb-6">Current status of services for {companyName}</p>
       {allServicesOperational ? (
-        <Card style={{ backgroundColor: '#e6ffe6', marginBottom: '16px', border: '1px solid #52c41a' }}>
-          <Paragraph style={{ color: '#389e0d', margin: 0, fontSize: '16px', fontWeight: 'bold' }}>
-            🎉 Hooray! All services are operational 🚀
-          </Paragraph>
+        <Card className="bg-green-100 mb-8 border-green-500 shadow-lg transition-all duration-300 hover:shadow-xl">
+          <CardContent className="py-4">
+            <p className="text-green-800 font-bold">
+              🎉 Hooray! All services are operational 🚀
+            </p>
+          </CardContent>
         </Card>
       ) : (
-        <Alert
-          message="Some services are facing issues. Our devs are doing their best to fix it!"
-          type="warning"
-          showIcon
-          style={{ marginBottom: '16px' }}
-        />
+        <Alert variant="warning" className="mb-8 bg-yellow-50 border-yellow-400 shadow-lg transition-all duration-300 hover:shadow-xl">
+          <AlertDescription className="text-yellow-800">
+            ⚠️ Some services are facing issues. Our devs are doing their best to fix it!
+          </AlertDescription>
+        </Alert>
       )}
 
-      <Title level={3} className='mt-16'>Services</Title>
-      <Row gutter={[0, 16]} className='mt-8'>
+      <h3 className="text-2xl font-bold tracking-tight mt-16 mb-4 text-primary">Services</h3>
+      <div className="grid gap-6 mt-8">
         {services.map((service) => {
           const serviceEvents = events.filter(event => event.service_id === service._id);
           
@@ -132,101 +136,101 @@ const StatusPage = () => {
           const uptimePercentage = calculateUptime(serviceEvents);
 
           return (
-            <Col span={24} key={service._id}>
-              <Card 
-                title={
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>{service.name}</span>
-                    <Tag color={getStatusColor(service.status)}>
-                      {service.status?.toUpperCase()}
-                    </Tag>
-                  </div>
-                } 
-                hoverable
-              >
-                <Paragraph>{service.description}</Paragraph>
-                <div style={{ marginTop: '16px' }}>
-                  <div style={{ fontSize: '14px', marginBottom: '4px' }}>Uptime Status (Last 10 days)</div>
+            <Card key={service._id} className="transition-all duration-300 hover:shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                  <span className="text-primary">{service.name}</span>
+                  <Badge variant={getStatusColor(service.status)} className={`text-${getStatusColor(service.status)}-700 bg-${getStatusColor(service.status)}-100`}>
+                    {service.status?.toUpperCase()}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">{service.description}</p>
+                <div className="mt-4">
+                  <div className="text-sm mb-1 font-semibold">Uptime Status (Last 10 days)</div>
                   <div style={{ display: 'flex', height: '20px', width: '100%' }}>
-                    {[...Array(240)].map((_, index) => {
+                    {Array.from({ length: 240 }, (_, index) => {
                       const time = new Date();
                       time.setHours(time.getHours() - (239 - index));
-                      const formattedTime = time.toLocaleString([], { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      });
                       const barColor = getBarColor(time);
                       return (
-                        <Tooltip key={index} title={`${formattedTime} - Service was ${barColor === 'green' ? 'active' : 'inactive'}`}>
-                          <div
-                            style={{
-                              width: '0.416%',
-                              height: '100%',
-                              backgroundColor: barColor,
-                              marginRight: '1px',
-                              cursor: 'pointer'
-                            }}
-                          />
-                        </Tooltip>
+                        <div
+                          key={index}
+                          style={{
+                            width: '0.416%',
+                            height: '100%',
+                            backgroundColor: barColor,
+                            marginRight: '1px',
+                          }}
+                          title={`${time.toLocaleString()} - Service was ${barColor === 'green' ? 'operational' : 'experiencing issues'}`}
+                        />
                       );
                     })}
                   </div>
-                  <hr style={{ margin: '8px 0' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <hr className="my-2" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>10 days ago</span>
-                    <span>{uptimePercentage}% uptime</span>
+                    <span className="font-semibold">{uptimePercentage}% uptime</span>
                     <span>Today</span>
                   </div>
                 </div>
-              </Card>
-            </Col>
+              </CardContent>
+            </Card>
           );
         })}
-      </Row>
-      <Title level={3} className='mt-16'>Past Events</Title>
+      </div>
+      <h3 className="text-2xl font-bold tracking-tight mt-16 mb-8 text-primary">Past Events</h3>
       {events.length > 0 ? (
-        <Row gutter={[0, 16]}>
+        <div className="grid gap-6">
           {events.map((event) => (
-            <Col span={24} key={event._id}>
-              <Card
-                hoverable
-                style={{ borderLeft: `4px solid ${getStatusColor(event.status)}` }}
-              >
-                <Row justify="space-between" align="top">
-                  <Col>
-                    <Paragraph strong>
-                      Affected Service: {event.service?.name}
-                      <Tag color={getStatusColor(event.status)} style={{ marginLeft: '8px' }}>
-                        {event.status}
-                      </Tag>
-                      {event.finished_at ? (
-                        <Tooltip title={`This issue was fixed at ${moment(event.finished_at).format('MMM D, YYYY h:mm A')}`}>
-                          <Tag color="green" style={{ marginLeft: '8px' }}>Fixed ✅</Tag>
+            <Card key={event._id} className={`border-l-4 border-l-${getStatusColor(event.status)} transition-all duration-300 hover:shadow-lg`}>
+              <CardContent className="flex justify-between items-start pt-6">
+                <div>
+                  <p className="font-bold text-primary">
+                    Affected Service: {event.service?.name}
+                    <Badge variant={getStatusColor(event.status)} className={`ml-2 text-${getStatusColor(event.status) === 'red' ? 'red-700' : `${getStatusColor(event.status)}-700`} bg-${getStatusColor(event.status)}-100`}>
+                      {event.status}
+                    </Badge>
+                    {event.finished_at ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="outline" className="ml-2 c text-green-700 bg-green-100">Fixed ✅</Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            This issue was fixed at {new Date(event.finished_at).toLocaleString()}
+                          </TooltipContent>
                         </Tooltip>
-                      ) : (
-                        <Tooltip title="Our team is currently working on resolving this issue">
-                          <Tag color="orange" style={{ marginLeft: '8px' }}>Being fixed ⏱️</Tag>
+                      </TooltipProvider>
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="outline" className="ml-2 cursor-help text-yellow-700 bg-yellow-100">Being fixed ⏱️</Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Our team is currently working on resolving this issue
+                          </TooltipContent>
                         </Tooltip>
-                      )}
-                    </Paragraph>
-                    <Paragraph>Reason: {event.reason}</Paragraph>
-                  </Col>
-                  <Col style={{ textAlign: 'right' }}>
-                    <Paragraph>
-                      <strong>{moment(event.started_at).format('MMM D, YYYY h:mm A')}</strong>
-                      {' '}
-                      ({calculateDuration(event.started_at, event.finished_at)})
-                    </Paragraph>
-                  </Col>
-                </Row>
-              </Card>
-            </Col>
+                      </TooltipProvider>
+                    )}
+                  </p>
+                  <p className="text-muted-foreground mt-2">Reason: {event.reason}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>{new Date(event.started_at).toLocaleString()}</strong>
+                    {' '}
+                    <span className="text-primary">({calculateDuration(event.started_at, event.finished_at)})</span>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           ))}
-        </Row>
+        </div>
       ) : (
-        <Empty description="No past events" />
+        <p className="text-center text-muted-foreground">No past events</p>
       )}
     </div>
   );
