@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import Layout from '../../components/layout'
 import { useFetchUser } from '../../lib/user'
@@ -16,6 +17,7 @@ export function Dashboard() {
   const [services, setServices] = useState<{ data: Array<IServiceModel> }>({ data: [] })
   const [events, setEvents] = useState([])
   const [userCount, setUserCount] = useState(0)
+  const [loadingEvents, setLoadingEvents] = useState(true)
 
   useEffect(() => {
     if (user && user.companyId) {
@@ -25,9 +27,13 @@ export function Dashboard() {
           setServices({ data: data.data })
         })
 
+      setLoadingEvents(true)
       fetch(`/api/events?companyId=${user.companyId}&limit=5`)
         .then(res => res.json())
-        .then(data => setEvents(data.data))
+        .then(data => {
+          setEvents(data.data)
+          setLoadingEvents(false)
+        })
 
       fetch(`/api/users?companyId=${user.companyId}`)
         .then(res => res.json())
@@ -113,26 +119,36 @@ export function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {events.map((event) => (
-                  <TableRow key={event._id}>
-                    <TableCell>{getServiceName(event.service_id)}</TableCell>
-                    <TableCell>
-                      <Badge variant={event.event_type === 'UP' ? 'success' : event.event_type === 'DOWN' ? 'destructive' : 'default'}>
-                        {event.event_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(event.created).toLocaleString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric', 
-                        hour: '2-digit', 
-                        minute: '2-digit', 
-                        hour12: true 
-                      })}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {loadingEvents ? (
+                  Array(5).fill(0).map((_, index) => (
+                    <TableRow key={index}>
+                      <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-[200px]" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  events.map((event) => (
+                    <TableRow key={event._id}>
+                      <TableCell>{getServiceName(event.service_id)}</TableCell>
+                      <TableCell>
+                        <Badge variant={event.event_type === 'UP' ? 'success' : event.event_type === 'DOWN' ? 'destructive' : 'default'}>
+                          {event.event_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(event.created).toLocaleString('en-US', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric', 
+                          hour: '2-digit', 
+                          minute: '2-digit', 
+                          hour12: true 
+                        })}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>

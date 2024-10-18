@@ -1,28 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Form, Input, Button, message, Row, Col, Card } from 'antd';
-import { useFetchUser, useUser } from '../lib/user';
+import { useFetchUser } from '../lib/user';
 import Layout from '../components/layout';
-import { CopyOutlined, LinkOutlined, EditOutlined } from '@ant-design/icons';
+import { Copy, Link, Pencil } from 'lucide-react';
 
-const { Title, Paragraph } = Typography;
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { useToast } from "@/hooks/use-toast"
+
+const formSchema = z.object({
+  companyName: z.string().min(2, {
+    message: "Company name must be at least 2 characters.",
+  }),
+})
 
 const SettingsPage = () => {
   const { user, loading } = useFetchUser();
-  const [form] = Form.useForm();
   const [companyName, setCompanyName] = useState('');
   const [statusPageUrl, setStatusPageUrl] = useState('');
   const [isEditingCompanyName, setIsEditingCompanyName] = useState(false);
+  const { toast } = useToast()
+
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      companyName: "",
+    },
+  })
 
   useEffect(() => {
     if (user && user.company) {
       setCompanyName(user.company.name);
+      form.setValue("companyName", user.company.name);
     }
     if (typeof window !== 'undefined' && user && user.companyId) {
       setStatusPageUrl(`${window.location.origin}/status/${user.companyId}`);
     }
-  }, [user]);
+  }, [user, form]);
 
-  const handlePasswordChange = async (values) => {
+  const handlePasswordChange = async () => {
     try {
       const response = await fetch(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/dbconnections/change_password`, {
         method: 'POST',
@@ -35,23 +55,41 @@ const SettingsPage = () => {
       });
 
       if (response.ok) {
-        message.success('Password change email sent. Please check your inbox.');
+        toast({
+          title: "Success",
+          description: "Password change email sent. Please check your inbox.",
+        })
       } else {
-        message.error('Failed to initiate password change.');
+        toast({
+          title: "Error",
+          description: "Failed to initiate password change.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Error changing password:', error);
-      message.error('An error occurred while changing password.');
+      toast({
+        title: "Error",
+        description: "An error occurred while changing password.",
+        variant: "destructive",
+      })
     }
   };
 
   const copyStatusPageUrl = () => {
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(statusPageUrl).then(() => {
-        message.success('Status page URL copied to clipboard!');
+        toast({
+          title: "Success",
+          description: "Status page URL copied to clipboard!",
+        })
       }, (err) => {
         console.error('Could not copy text: ', err);
-        message.error('Failed to copy URL.');
+        toast({
+          title: "Error",
+          description: "Failed to copy URL.",
+          variant: "destructive",
+        })
       });
     }
   };
@@ -68,13 +106,24 @@ const SettingsPage = () => {
         const updatedCompany = await response.json();
         setCompanyName(updatedCompany.name);
         setIsEditingCompanyName(false);
-        message.success('Company name updated successfully.');
+        toast({
+          title: "Success",
+          description: "Company name updated successfully.",
+        })
       } else {
-        message.error('Failed to update company name.');
+        toast({
+          title: "Error",
+          description: "Failed to update company name.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Error updating company name:', error);
-      message.error('An error occurred while updating company name.');
+      toast({
+        title: "Error",
+        description: "An error occurred while updating company name.",
+        variant: "destructive",
+      })
     }
   };
 
@@ -84,58 +133,75 @@ const SettingsPage = () => {
 
   return (
     <Layout user={user} loading={loading}>
-      <Title level={2}>Settings</Title>
-      <Row gutter={[16, 16]}>
-        <Col span={12}>
-          <Card title="Company Information" style={{ height: '200px' }}>
+      <h2 className="text-3xl font-bold tracking-tight mb-6">Settings</h2>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Company Information</CardTitle>
+          </CardHeader>
+          <CardContent>
             {isEditingCompanyName ? (
-              <Form onFinish={handleCompanyNameChange} initialValues={{ companyName }}>
-                <Form.Item name="companyName" rules={[{ required: true, message: 'Please input company name!' }]}>
-                  <Input />
-                </Form.Item>
-                <Form.Item>
-                  <Button type="primary" htmlType="submit">Save</Button>
-                  <Button onClick={() => setIsEditingCompanyName(false)} style={{ marginLeft: 8 }}>Cancel</Button>
-                </Form.Item>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleCompanyNameChange)} className="space-y-8">
+                  <FormField
+                    control={form.control}
+                    name="companyName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit">Save</Button>
+                  <Button variant="outline" onClick={() => setIsEditingCompanyName(false)} className="ml-2">Cancel</Button>
+                </form>
               </Form>
             ) : (
-              <Paragraph>
-                <strong>Company Name:</strong> {companyName}
-                <Button icon={<EditOutlined />} type="link" onClick={() => setIsEditingCompanyName(true)} />
-              </Paragraph>
-            )}
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="Change Password" style={{ height: '200px' }}>
-            <Form form={form} onFinish={handlePasswordChange}>
-              <Form.Item>
-                <Button type="primary" htmlType="submit">
-                  Send Password Reset Email
+              <div className="flex items-center justify-between">
+                <p><strong>Company Name:</strong> {companyName}</p>
+                <Button variant="outline" size="icon" onClick={() => setIsEditingCompanyName(true)}>
+                  <Pencil className="h-4 w-4" />
                 </Button>
-              </Form.Item>
-            </Form>
-          </Card>
-        </Col>
-      </Row>
-      <Row style={{ marginTop: '16px' }}>
-        <Col span={24}>
-          <Card title="Public Status Page" style={{ height: '200px' }}>
-            <Paragraph>
-              Your public status page URL:
-            </Paragraph>
-            <Input.Group compact>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Change Password</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handlePasswordChange}>
+              Send Password Reset Email
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="mt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Public Status Page</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-2">Your public status page URL:</p>
+            <div className="flex">
               <Input
-                style={{ width: 'calc(100% - 64px)' }}
-                prefix={<LinkOutlined />}
+                className="flex-grow"
                 value={statusPageUrl}
                 readOnly
+                icon={<Link className="h-4 w-4" />}
               />
-              <Button icon={<CopyOutlined />} onClick={copyStatusPageUrl} />
-            </Input.Group>
-          </Card>
-        </Col>
-      </Row>
+              <Button variant="outline" size="icon" onClick={copyStatusPageUrl} className="ml-2">
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </Layout>
   );
 };

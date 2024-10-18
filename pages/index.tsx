@@ -1,24 +1,65 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Typography, message, Row, Col, Modal, Form, Input, Select, Tag, Popconfirm, Dropdown, Menu, Spin } from 'antd';
-import { MoreOutlined } from '@ant-design/icons';
 import { useFetchUser } from '../lib/user';
 import Layout from '../components/layout';
 import { ServiceStatus, operationalStatus, inactiveStatus } from '../interfaces/service';
 import { useRouter } from 'next/router';
+import { MoreVertical, Plus } from 'lucide-react';
 
-const { Title, Paragraph } = Typography;
-const { Option } = Select;
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useToast } from "@/hooks/use-toast"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "Name must be at least 2 characters.",
+  }),
+  description: z.string().min(2, {
+    message: "Description must be at least 2 characters.",
+  }),
+})
+
+const statusFormSchema = z.object({
+  status: z.string(),
+  reason: z.string().min(1, {
+    message: "Reason is required.",
+  }),
+})
 
 const ServicesPage = () => {
   const { user, loading } = useFetchUser();
   const [services, setServices] = useState([]);
   const [fetchingServices, setFetchingServices] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
-  const [form] = Form.useForm();
-  const [statusForm] = Form.useForm();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const router = useRouter();
+  const { toast } = useToast()
+
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
+  })
+
+  const statusForm = useForm({
+    resolver: zodResolver(statusFormSchema),
+    defaultValues: {
+      status: "",
+      reason: "",
+    },
+  })
 
   useEffect(() => {
     if (!loading) {
@@ -39,86 +80,22 @@ const ServicesPage = () => {
         const data = await response.json();
         setServices(data.data);
       } else {
-        message.error('Failed to fetch services');
+        toast({
+          title: "Error",
+          description: "Failed to fetch services",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Error fetching services:', error);
-      message.error('An error occurred while fetching services');
+      toast({
+        title: "Error",
+        description: "An error occurred while fetching services",
+        variant: "destructive",
+      })
     } finally {
       setFetchingServices(false);
     }
-  };
-
-  const columns = [
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => (
-        <Tag color={
-          status === ServiceStatus.OPERATIONAL ? 'green' :
-          status === ServiceStatus.MAJOR_OUTAGE ? 'red' : 'yellow'
-        }>
-          {status.toUpperCase()}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (text, record) => (
-        <Dropdown overlay={
-          <Menu>
-            <Menu.Item key="1" onClick={() => showStatusModal(record)}>
-              Change Status
-            </Menu.Item>
-            <Menu.Item key="2" className="text-red-500">
-              <Popconfirm
-                title="Are you sure you want to delete this service?"
-                onConfirm={() => handleDeleteService(record._id)}
-                okText="Yes"
-                cancelText="No"
-              >
-                <Typography.Text className="text-red-500">Delete</Typography.Text>
-              </Popconfirm>
-            </Menu.Item>
-          </Menu>
-        } trigger={['click']}>
-          <Button icon={<MoreOutlined />} />
-        </Dropdown>
-      ),
-    },
-  ];
-
-  const showModal = () => {
-    setIsModalVisible(true);
-  };
-
-  const showStatusModal = (service) => {
-    setSelectedService(service);
-    setIsStatusModalVisible(true);
-    statusForm.resetFields();
-  };
-
-  const handleCancel = () => {
-    setIsModalVisible(false);
-    form.resetFields();
-  };
-
-  const handleStatusCancel = () => {
-    setIsStatusModalVisible(false);
-    statusForm.resetFields();
-    setSelectedService(null);
   };
 
   const handleCreateService = async (values) => {
@@ -129,16 +106,27 @@ const ServicesPage = () => {
         body: JSON.stringify({ ...values }),
       });
       if (response.ok) {
-        message.success('Service created successfully');
-        fetchServices();  // Refresh the service list
-        setIsModalVisible(false);
-        form.resetFields();
+        toast({
+          title: "Success",
+          description: "Service created successfully",
+        })
+        fetchServices();
+        form.reset();
+        setIsCreateDialogOpen(false);
       } else {
-        message.error('Failed to create service');
+        toast({
+          title: "Error",
+          description: "Failed to create service",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Error creating service:', error);
-      message.error('An error occurred while creating service');
+      toast({
+        title: "Error",
+        description: "An error occurred while creating service",
+        variant: "destructive",
+      })
     }
   };
 
@@ -153,17 +141,28 @@ const ServicesPage = () => {
         }),
       });
       if (response.ok) {
-        message.success('Service status updated successfully');
+        toast({
+          title: "Success",
+          description: "Service status updated successfully",
+        })
         fetchServices();
-        setIsStatusModalVisible(false);
-        statusForm.resetFields();
+        statusForm.reset();
         setSelectedService(null);
       } else {
-        message.error('Failed to update service status');
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to update service status",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Error updating service status:', error);
-      message.error('An error occurred while updating service status');
+      toast({
+        title: "Error",
+        description: "An error occurred while updating service status",
+        variant: "destructive",
+      })
     }
   };
 
@@ -173,19 +172,30 @@ const ServicesPage = () => {
         method: 'DELETE',
       });
       if (response.ok) {
-        message.success('Service deleted successfully');
-        fetchServices();  // Refresh the service list
+        toast({
+          title: "Success",
+          description: "Service deleted successfully",
+        })
+        fetchServices();
       } else {
-        message.error('Failed to delete service');
+        toast({
+          title: "Error",
+          description: "Failed to delete service",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Error deleting service:', error);
-      message.error('An error occurred while deleting service');
+      toast({
+        title: "Error",
+        description: "An error occurred while deleting service",
+        variant: "destructive",
+      })
     }
   };
 
   if (loading) {
-    return <Layout user={null} loading={loading}><Spin size="large" /></Layout>;
+    return <Layout user={null} loading={loading}><Skeleton className="w-[100px] h-[20px] rounded-full" /></Layout>;
   }
 
   if (!user) {
@@ -194,105 +204,177 @@ const ServicesPage = () => {
 
   return (
     <Layout user={user} loading={loading}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={2}>Services</Title>
-          <Paragraph>Manage services in your company</Paragraph>
-        </Col>
-        <Col>
-          <Button 
-            type="primary" 
-            onClick={showModal}
-          >
-            Create New Service
-          </Button>
-        </Col>
-      </Row>
-
-      <Table 
-        columns={columns} 
-        dataSource={services} 
-        rowKey="_id"
-        loading={fetchingServices}
-      />
-
-      <Modal
-        title="Create New Service"
-        visible={isModalVisible}
-        onCancel={handleCancel}
-        footer={null}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleCreateService}
-        >
-          <Form.Item
-            name="name"
-            label="Name"
-            rules={[{ required: true, message: 'Please input the service name!' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="description"
-            label="Description"
-            rules={[{ required: true, message: 'Please input the service description!' }]}
-          >
-            <Input.TextArea />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit">
-              Create Service
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Services</h2>
+          <p className="text-muted-foreground">Manage services in your company</p>
+        </div>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Create New Service
             </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Service</DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleCreateService)} className="space-y-8">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit">Create Service</Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      <Modal
-        title="Change Service Status"
-        visible={isStatusModalVisible}
-        onCancel={handleStatusCancel}
-        footer={null}
-      >
-        <Form
-          form={statusForm}
-          layout="vertical"
-          onFinish={handleStatusChange}
-        >
-          <Form.Item
-            name="status"
-            label="New Status"
-            rules={[{ required: true, message: 'Please select the new status!' }]}
-          >
-            <Select>
-              {operationalStatus.includes(selectedService?.status)
-                ? inactiveStatus.map((status) => (
-                    <Option key={status} value={status}>
-                      {status}
-                    </Option>
-                  ))
-                : [ServiceStatus.OPERATIONAL].map((status) => (
-                    <Option key={status} value={status}>
-                      {status}
-                    </Option>
-                  ))}
-            </Select>
-          </Form.Item>
-          {(selectedService?.status===ServiceStatus.OPERATIONAL) && <Form.Item
-            name="reason"
-            label="Reason"
-            rules={[{ required: true, message: 'Please provide a reason for the status change!' }]}
-          >
-            <Input.TextArea />
-          </Form.Item>}
-          <Form.Item>
-            <Button type="primary" htmlType="submit">
-              Update Status
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Action</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {services.map((service) => (
+            <TableRow key={service._id}>
+              <TableCell>{service.name}</TableCell>
+              <TableCell>
+                <Badge 
+                  variant={
+                    service.status === ServiceStatus.OPERATIONAL ? 'success' :
+                    service.status === ServiceStatus.MAJOR_OUTAGE ? 'destructive' : 'warning'
+                  }
+                  className={
+                    service.status === ServiceStatus.OPERATIONAL ? 'bg-green-500' :
+                    service.status === ServiceStatus.MAJOR_OUTAGE ? 'bg-red-500' : 'bg-yellow-500'
+                  }
+                >
+                  {service.status.toUpperCase()}
+                </Badge>
+              </TableCell>
+              <TableCell>{service.description}</TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => setSelectedService(service)}>
+                      Change Status
+                    </DropdownMenuItem>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
+                          Delete
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the service.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteService(service._id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <Dialog open={!!selectedService} onOpenChange={() => setSelectedService(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Service Status</DialogTitle>
+          </DialogHeader>
+          <Form {...statusForm}>
+            <form onSubmit={statusForm.handleSubmit(handleStatusChange)} className="space-y-8">
+              <FormField
+                control={statusForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(operationalStatus.includes(selectedService?.status)
+                          ? inactiveStatus
+                          : [ServiceStatus.OPERATIONAL]
+                        ).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={statusForm.control}
+                name="reason"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reason</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit">Update Status</Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

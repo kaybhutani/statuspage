@@ -1,16 +1,22 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { Menu, Popover, theme, ConfigProvider, Divider, Switch } from 'antd';
 import { UserProvider } from '../lib/user';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { DatabaseOutlined, CaretRightOutlined, SettingOutlined, LogoutOutlined, UserOutlined, PlusOutlined, RightSquareOutlined, AppstoreOutlined, DashboardOutlined } from '@ant-design/icons';
-import { Typography } from 'antd';
+import { SettingsIcon, LogOutIcon, UserIcon, AppWindowIcon, LayoutDashboardIcon, SunIcon, MoonIcon } from 'lucide-react';
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const AppLayout = ({ user, loading = false, children }) => {
   const router = useRouter();
-  const [current, setCurrent] = useState('');
-  const { darkAlgorithm, defaultAlgorithm } = theme;
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
@@ -23,10 +29,11 @@ const AppLayout = ({ user, loading = false, children }) => {
     }
   }, []);
 
-  const toggleDarkMode = (checked) => {
-    setIsDarkMode(checked);
-    localStorage.setItem('darkMode', checked);
-    if (checked) {
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    localStorage.setItem('darkMode', newMode);
+    if (newMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
@@ -35,108 +42,99 @@ const AppLayout = ({ user, loading = false, children }) => {
 
   const menuItems = [
     {
-      key: 'logo',
-      label: (
-        <Link href="/">
-          <Typography.Title level={4} style={{ margin: 0 }}>StatusPage</Typography.Title>
-        </Link>
-      ),
-    },
-    {
       key: 'dashboard',
-      label: <Link href="/dashboard">Dashboard</Link>,
-      icon: <DashboardOutlined />,
+      label: 'Dashboard',
+      href: '/dashboard',
+      icon: <LayoutDashboardIcon className="mr-2 h-4 w-4" />,
     },
     {
       key: 'services',
-      label: <Link href="/">Services</Link>,
-      icon: <AppstoreOutlined />,
+      label: 'Services',
+      href: '/',
+      icon: <AppWindowIcon className="mr-2 h-4 w-4" />,
     },
     {
       key: 'users',
-      label: <Link href="/users">Users</Link>,
-      icon: <UserOutlined />,
+      label: 'Users',
+      href: '/users',
+      icon: <UserIcon className="mr-2 h-4 w-4" />,
     }, 
     {
       key: 'settings',
-      label: <Link href="/settings">Settings</Link>,
-      icon: <SettingOutlined />,
-    },
-    {
-      key: 'divider',
-      label: <Divider style={{ margin: '10px 0' }} />,
-    },
-    {
-      key: 'user',
-      label: (
-        <span>
-          Hi, {user?.name || 'User'}
-        </span>
-      ),
-      icon: <UserOutlined />,
-      style: { marginTop: 'auto' },
-    },
-    {
-      key: 'darkMode',
-      label: (
-        <span>
-          Dark Mode
-          <Switch
-            checked={isDarkMode}
-            onChange={toggleDarkMode}
-            checkedChildren="🌙"
-            unCheckedChildren="☀️"
-            style={{ marginLeft: '10px' }}
-          />
-        </span>
-      ),
-    },
-    {
-      key: 'logout',
-      label: 'Logout',
-      icon: <LogoutOutlined />,
-      onClick: () => window.location.href = '/api/logout',
+      label: 'Settings',
+      href: '/settings',
+      icon: <SettingsIcon className="mr-2 h-4 w-4" />,
     },
   ];
 
-  const handleClick = (e) => {
-    setCurrent(e.key);
-  };
-
   return (
-  <UserProvider value={{ user, loading }}>
-    <ConfigProvider
-      theme={{
-        algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm,
-      }}
-    >
-    <Head>
-      <title>Dashboard - StatusPage</title>
-    </Head>
+    <UserProvider value={{ user, loading }}>
+      <Head>
+        <title>Dashboard - StatusPage</title>
+      </Head>
 
-    <div className="flex">
-      <Menu
-        onClick={handleClick}
-        selectedKeys={[current]}
-        mode="inline"
-        style={{
-          width: 200, 
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-        theme={isDarkMode ? "dark" : "light"}
-        defaultOpenKeys={['tasks']}
-        items={menuItems}
-      />
-      <div className={`flex-1 h-screen ${isDarkMode ? "bg-gray-700 dark" : "bg-gray-100"}`}>
-        <div className={`m-1.5 rounded-lg shadow-lg h-full p-6 overflow-auto ${isDarkMode ? "bg-gray-900 dark" : "bg-white"}`}>
-          {children}
+      <div className="flex h-screen">
+        <div className="w-64 bg-background border-r flex flex-col">
+          <div className="p-4">
+            <Link href="/" className="text-2xl font-bold">StatusPage</Link>
+          </div>
+          <nav className="mt-4 flex-grow">
+            {menuItems.map((item) => (
+              <Link key={item.key} href={item.href}>
+                <Button
+                  variant="ghost"
+                  className={`w-full justify-start ${
+                    router.pathname === item.href ? 'bg-accent' : ''
+                  }`}
+                >
+                  {item.icon}
+                  {item.label}
+                </Button>
+              </Link>
+            ))}
+          </nav>
+          <div className="p-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-start">
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  {user?.name || 'User'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/settings')}>
+                  <SettingsIcon className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => window.location.href = '/api/logout'}>
+                  <LogOutIcon className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="flex items-center justify-between mt-4">
+              <span className="flex items-center">
+                {isDarkMode ? <MoonIcon className="mr-2 h-4 w-4" /> : <SunIcon className="mr-2 h-4 w-4" />}
+                Dark mode
+              </span>
+              <Switch
+                checked={isDarkMode}
+                onCheckedChange={toggleDarkMode}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-auto">
+          <main className="p-6">
+            {children}
+          </main>
         </div>
       </div>
-    </div>
-    </ConfigProvider>
-  </UserProvider>
-)};
+    </UserProvider>
+  );
+};
 
 export default AppLayout;

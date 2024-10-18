@@ -1,66 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Typography, message, Row, Col, Modal, Form, Input } from 'antd';
-import { useFetchUser, useUser } from '../../lib/user';
+import { useFetchUser } from '../../lib/user';
 import Layout from '../../components/layout';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { Skeleton } from "@/components/ui/skeleton"
 
-const { Title, Paragraph } = Typography;
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "Name must be at least 2 characters.",
+  }),
+  email: z.string().email({
+    message: "Please enter a valid email.",
+  }),
+  password: z.string().min(8, {
+    message: "Password must be at least 8 characters long.",
+  }),
+})
 
 const UsersPage = () => {
-  const { user, loading } = useFetchUser();
+  const { user, loading: userLoading } = useFetchUser();
   const [users, setUsers] = useState([]);
-  const [fetchingUsers, setFetchingUsers] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [form] = Form.useForm();
+  const [fetchingUsers, setFetchingUsers] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
+  })
 
   useEffect(() => {
-    
+    if (!userLoading) {
       fetchUsers();
-  }, []);
+    }
+  }, [userLoading]);
 
   const fetchUsers = async () => {
-    setFetchingUsers(true);
     try {
       const response = await fetch(`/api/users`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data.data);
       } else {
-        message.error('Failed to fetch users');
+        console.error('Failed to fetch users');
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      message.error('An error occurred while fetching users');
     } finally {
       setFetchingUsers(false);
     }
-  };
-
-  const columns = [
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-    },
-    {
-      title: 'Created',
-      dataIndex: 'created',
-      key: 'created',
-      render: (text) => new Date(text).toLocaleDateString(),
-    },
-  ];
-
-  const showModal = () => {
-    setIsModalVisible(true);
-  };
-
-  const handleCancel = () => {
-    setIsModalVisible(false);
-    form.resetFields();
   };
 
   const handleInviteUser = async (values) => {
@@ -74,93 +71,108 @@ const UsersPage = () => {
       });
 
       if (response.ok) {
-        message.success('User invited successfully');
-        setIsModalVisible(false);
-        form.resetFields();
-        fetchUsers(); // Refresh the user list
+        console.log('User invited successfully');
+        setIsDialogOpen(false);
+        form.reset();
+        fetchUsers();
       } else {
         const errorData = await response.json();
-        message.error(errorData.error || 'Failed to invite user');
+        console.error(errorData.error || 'Failed to invite user');
       }
     } catch (error) {
       console.error('Error inviting user:', error);
-      message.error('An error occurred while inviting user');
     }
   };
 
-  if (loading) {
-    return <Layout user={null} loading={loading}>Loading...</Layout>;
-  }
-
   return (
-    <Layout user={user} loading={loading}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={2}>Users</Title>
-          <Paragraph>Manage users in your company</Paragraph>
-        </Col>
-        <Col>
-          <Button 
-            type="primary" 
-            onClick={showModal}
-          >
-            Invite New User
-          </Button>
-        </Col>
-      </Row>
+    <Layout user={user} loading={userLoading}>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Users</h2>
+          <p className="text-muted-foreground">Manage users in your company</p>
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>Invite New User</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Invite New User</DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleInviteUser)} className="space-y-8">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit">Invite</Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      <Table 
-        columns={columns} 
-        dataSource={users} 
-        rowKey="_id"
-        loading={fetchingUsers}
-      />
-
-      <Modal
-        title="Invite New User"
-        visible={isModalVisible}
-        onCancel={handleCancel}
-        footer={null}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleInviteUser}
-        >
-          <Form.Item
-            name="name"
-            label="Name"
-            rules={[{ required: true, message: 'Please input the name!' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              { required: true, message: 'Please input the email!' },
-              { type: 'email', message: 'Please enter a valid email!' }
-            ]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="password"
-            label="Password"
-            rules={[
-              { required: true, message: 'Please input the password!' },
-              { min: 8, message: 'Password must be at least 8 characters long!' }
-            ]}
-          >
-            <Input.Password />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit">
-              Invite
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Created</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {fetchingUsers ? (
+            <TableRow>
+              <TableCell colSpan={3}>
+                <Skeleton className="h-8 w-full" />
+              </TableCell>
+            </TableRow>
+          ) : (
+            users.map((user) => (
+              <TableRow key={user._id}>
+                <TableCell>{user.name}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>{new Date(user.created).toLocaleDateString()}</TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </Layout>
   );
 };
