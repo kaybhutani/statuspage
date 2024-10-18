@@ -65,11 +65,11 @@ const StatusPage = () => {
       const endTime = event.finished_at ? moment(event.finished_at) : moment();
       
       if (startTime.isBefore(tenDaysAgo)) {
-        startTime.set(tenDaysAgo);
+        startTime.set(tenDaysAgo.toObject());
       }
       
       if (endTime.isAfter(moment())) {
-        endTime.set(moment());
+        endTime.set(moment().toObject());
       }
       
       const duration = moment.duration(endTime.diff(startTime));
@@ -137,7 +137,7 @@ const StatusPage = () => {
                 title={
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{service.name}</span>
-                    <Tag size='large' color={getStatusColor(service.status)}>
+                    <Tag color={getStatusColor(service.status)}>
                       {service.status?.toUpperCase()}
                     </Tag>
                   </div>

@@ -16,11 +16,21 @@ const AppLayout = ({ user, loading = false, children }) => {
   useEffect(() => {
     const savedMode = localStorage.getItem('darkMode');
     setIsDarkMode(savedMode === 'true');
+    if (savedMode === 'true') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, []);
 
   const toggleDarkMode = (checked) => {
     setIsDarkMode(checked);
     localStorage.setItem('darkMode', checked);
+    if (checked) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   };
 
   const menuItems = [
@@ -64,7 +74,7 @@ const AppLayout = ({ user, loading = false, children }) => {
         </span>
       ),
       icon: <UserOutlined />,
-      style: { position: 'absolute', bottom: 80, width: '100%' },
+      style: { marginTop: 'auto' },
     },
     {
       key: 'darkMode',
@@ -80,14 +90,12 @@ const AppLayout = ({ user, loading = false, children }) => {
           />
         </span>
       ),
-      style: { position: 'absolute', bottom: 40, width: '100%' },
     },
     {
       key: 'logout',
       label: 'Logout',
       icon: <LogoutOutlined />,
       onClick: () => window.location.href = '/api/logout',
-      style: { position: 'absolute', bottom: 0, width: '100%' },
     },
   ];
 
@@ -106,36 +114,28 @@ const AppLayout = ({ user, loading = false, children }) => {
       <title>Dashboard - StatusPage</title>
     </Head>
 
-    <div style={{ display: 'flex' }}>
-    <Menu
+    <div className="flex">
+      <Menu
         onClick={handleClick}
         selectedKeys={[current]}
         mode="inline"
-        style={{width: 200, height: '100vh'}}
+        style={{
+          width: 200, 
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
         theme={isDarkMode ? "dark" : "light"}
         defaultOpenKeys={['tasks']}
         items={menuItems}
-      >
-        
-      </Menu>
-      <div className={isDarkMode ? "bg-gray-700" : "bg-gray-100"} style={{ 
-        flex: 1, 
-        height: '100vh', 
-        position: 'fixed',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 200,
-      }}>
-        <div className={`m-1.5 ${isDarkMode ? "bg-gray-900" : "bg-white"} rounded-lg shadow-lg h-full p-6`} style={{
-          height: '100%',
-          overflow: 'auto'
-        }}>
+      />
+      <div className={`flex-1 h-screen ${isDarkMode ? "bg-gray-700 dark" : "bg-gray-100"}`}>
+        <div className={`m-1.5 rounded-lg shadow-lg h-full p-6 overflow-auto ${isDarkMode ? "bg-gray-900 dark" : "bg-white"}`}>
           {children}
         </div>
       </div>
-      </div>
-      </ConfigProvider>
+    </div>
+    </ConfigProvider>
   </UserProvider>
 )};
 

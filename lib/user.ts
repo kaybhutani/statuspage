@@ -15,6 +15,7 @@ export const fetchUser = async (): Promise<IUserModel | null> => {
 
   const res = await fetch('/api/users/me');
   userState = res.ok ? await res.json() : null;
+  // @ts-ignore
   return userState;
 }
 
